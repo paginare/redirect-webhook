@@ -57,14 +57,18 @@ fastify.all('/*', async (request, reply) => {
     const challenge = query['hub.challenge'];
 
     // Verifica se é uma requisição de verificação da Meta
-    if (mode === 'subscribe' && token) {
-      fastify.log.info({ mode, token }, 'Recebida requisição de verificação da Meta');
+    if (mode && mode === 'subscribe') {
+      fastify.log.info({ mode, token, challenge }, 'Recebida requisição de verificação da Meta');
       
       if (token === META_VERIFY_TOKEN) {
         fastify.log.info('Token verificado com sucesso');
-        return reply.code(200).send(challenge);
+        // Retorna o challenge como texto plano (não JSON)
+        return reply
+          .code(200)
+          .header('Content-Type', 'text/plain')
+          .send(challenge);
       } else {
-        fastify.log.warn('Token de verificação inválido');
+        fastify.log.warn({ receivedToken: token, expectedToken: META_VERIFY_TOKEN }, 'Token de verificação inválido');
         return reply.code(403).send('Token de verificação inválido');
       }
     }

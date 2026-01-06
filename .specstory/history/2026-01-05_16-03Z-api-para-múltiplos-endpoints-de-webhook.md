@@ -619,3 +619,317 @@ A API continua leve e performática, apenas adicionei a lógica necessária para
 
 ---
 
+_**User (2026-01-06 16:27Z)**_
+
+faça deploy desse projeto no meu github
+
+---
+
+_**Agent (model claude-4.5-sonnet, mode Agent)**_
+
+Vou fazer o deploy do projeto no seu GitHub. Primeiro, vou inicializar o repositório Git e fazer o commit dos arquivos:
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd /Users/antonioduarte/Lançar/redirect-webhook && git init</summary>
+
+```bash
+cd /Users/antonioduarte/Lançar/redirect-webhook && git init
+```
+
+```
+Initialized empty Git repository in /Users/antonioduarte/Lançar/redirect-webhook/.git/
+
+```
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd /Users/antonioduarte/Lançar/redirect-webhook && git add .</summary>
+
+```bash
+cd /Users/antonioduarte/Lançar/redirect-webhook && git add .
+```
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd /Users/antonioduarte/Lançar/redirect-webhook && git commit -m "Initial commit: API de redirecionamento de webhooks com suporte Meta"</summary>
+
+```bash
+cd /Users/antonioduarte/Lançar/redirect-webhook && git commit -m "Initial commit: API de redirecionamento de webhooks com suporte Meta"
+```
+
+```
+[main (root-commit) 93366f3] Initial commit: API de redirecionamento de webhooks com suporte Meta
+ 8 files changed, 1450 insertions(+)
+ create mode 100644 .cursorindexingignore
+ create mode 100644 .gitignore
+ create mode 100644 .specstory/.gitignore
+ create mode 100644 ".specstory/history/2026-01-05_16-03Z-api-para-m\303\272ltiplos-endpoints-de-webhook.md"
+ create mode 100644 README.md
+ create mode 100644 index.js
+ create mode 100644 package-lock.json
+ create mode 100644 package.json
+
+```
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd /Users/antonioduarte/Lançar/redirect-webhook && gh repo create redirect-webhook --public --source=. --remote=origin --push</summary>
+
+```bash
+cd /Users/antonioduarte/Lançar/redirect-webhook && gh repo create redirect-webhook --public --source=. --remote=origin --push
+```
+
+```
+(eval):1: command not found: gh
+
+```
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd /Users/antonioduarte/Lançar/redirect-webhook && git branch -M main</summary>
+
+```bash
+cd /Users/antonioduarte/Lançar/redirect-webhook && git branch -M main
+```
+</details>
+</tool-use>
+
+---
+
+Vou criar o repositório manualmente no GitHub. Primeiro, preciso saber o seu nome de usuário do GitHub para configurar o remote correto:
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: git config --global user.name</summary>
+
+```bash
+git config --global user.name
+```
+
+```
+Antonio Duarte
+
+```
+</details>
+</tool-use>
+
+---
+
+Vou criar um script para facilitar o processo. Aqui estão as instruções para fazer o deploy no GitHub:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="write">
+
+<details><summary>Tool use: **write** • Edit file: /Users/antonioduarte/Lançar/redirect-webhook/DEPLOY.md</summary>
+
+**Chunk 1**
+Lines added: 61, lines removed: 1
+
+```diff
+@@ -1,1 +1,61 @@
+- 
++ # 🚀 Instruções de Deploy no GitHub
++ 
++ O projeto já foi inicializado com Git e está pronto para ser enviado ao GitHub.
++ 
++ ## Opção 1: Usando a Interface Web do GitHub (Recomendado)
++ 
++ 1. **Acesse o GitHub** e faça login: https://github.com/new
++ 
++ 2. **Crie um novo repositório:**
++    - Nome: &#96;redirect-webhook&#96;
++    - Descrição: &#96;API leve para redirecionar webhooks com suporte Meta&#96;
++    - Visibilidade: Public ou Private (sua escolha)
++    - **NÃO** marque "Add README" ou outras opções
++ 
++ 3. **Execute os comandos abaixo** (substitua &#96;SEU_USUARIO&#96; pelo seu usuário do GitHub):
++ 
++ &#96;&#96;&#96;bash
++ cd /Users/antonioduarte/Lançar/redirect-webhook
++ git remote add origin https://github.com/SEU_USUARIO/redirect-webhook.git
++ git push -u origin main
++ &#96;&#96;&#96;
++ 
++ ## Opção 2: Usando SSH (se configurado)
++ 
++ &#96;&#96;&#96;bash
++ cd /Users/antonioduarte/Lançar/redirect-webhook
++ git remote add origin git@github.com:SEU_USUARIO/redirect-webhook.git
++ git push -u origin main
++ &#96;&#96;&#96;
++ 
++ ## ✅ Verificação
++ 
++ Após o push, seu repositório estará disponível em:
++ &#96;https://github.com/SEU_USUARIO/redirect-webhook&#96;
++ 
++ ## 📝 Próximos Passos
++ 
++ Após fazer o deploy no GitHub, você pode:
++ 
++ 1. **Deploy em produção:**
++    - Render.com (gratuito)
++    - Railway.app
++    - Heroku
++    - DigitalOcean
++    - Qualquer servidor VPS
++ 
++ 2. **Configurar variáveis de ambiente** no serviço de hosting:
++    - &#96;ENDPOINT_1&#96;
++    - &#96;ENDPOINT_2&#96;
++    - &#96;META_VERIFY_TOKEN&#96;
++    - &#96;PORT&#96; (geralmente definido automaticamente)
++ 
++ ---
++ 
++ ## 🔧 Status Atual
++ 
++ ✅ Repositório Git inicializado
++ ✅ Commit inicial feito
++ ✅ Branch main configurada
++ ⏳ Aguardando push para o GitHub
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Perfeito! O projeto está pronto para ser enviado ao GitHub. Aqui está o que foi feito:
+
+## ✅ Status do Deploy:
+
+1. **✓ Repositório Git inicializado**
+2. **✓ Commit inicial criado** com todos os arquivos
+3. **✓ Branch `main` configurada**
+
+## 🚀 Para completar o deploy no GitHub:
+
+Você tem duas opções:
+
+### **Opção 1: Interface Web (mais fácil)** 
+
+1. Acesse: https://github.com/new
+2. Crie um repositório chamado `redirect-webhook`
+3. **NÃO marque** nenhuma opção de adicionar arquivos
+4. Depois de criar, execute (substitua `SEU_USUARIO`):
+
+```bash
+cd /Users/antonioduarte/Lançar/redirect-webhook
+git remote add origin https://github.com/SEU_USUARIO/redirect-webhook.git
+git push -u origin main
+```
+
+### **Opção 2: Posso fazer agora (preciso do seu usuário)**
+
+Se você me informar seu nome de usuário do GitHub, posso executar os comandos para você agora mesmo!
+
+Qual opção você prefere? Ou quer que eu crie o repositório com um nome de usuário específico?
+
+---
+
+_**User (2026-01-06 16:27Z)**_
+
+quais sao as envs que tenho que por ?
+
+---
+
+_**Agent (model claude-4.5-sonnet, mode Agent)**_
+
+Aqui estão as variáveis de ambiente que você precisa configurar:
+
+## 🔧 Variáveis de Ambiente Necessárias:
+
+### **1. ENDPOINT_1** (obrigatório)
+O primeiro endpoint para onde os webhooks serão redirecionados.
+```bash
+export ENDPOINT_1=https://golden-fish-68.webhook.cool
+```
+
+### **2. ENDPOINT_2** (obrigatório)
+O segundo endpoint para onde os webhooks serão redirecionados.
+```bash
+export ENDPOINT_2=https://webhook.site/6052667b-164c-45a7-b44d-3ad2b5059a72
+```
+
+### **3. META_VERIFY_TOKEN** (obrigatório para Meta)
+Token secreto para verificação de webhooks da Meta (WhatsApp/Facebook/Instagram).
+```bash
+export META_VERIFY_TOKEN=meu_token_super_secreto_123
+```
+> ⚠️ **Importante:** Use o mesmo token que você configurar no painel da Meta!
+
+### **4. PORT** (opcional)
+Porta onde o servidor vai rodar. Padrão: 3000
+```bash
+export PORT=3000
+```
+> 💡 Em serviços como Heroku/Render, essa variável é configurada automaticamente.
+
+### **5. HOST** (opcional)
+Host do servidor. Padrão: 0.0.0.0
+```bash
+export HOST=0.0.0.0
+```
+
+---
+
+## 📝 Como configurar:
+
+### **Localmente (.env file):**
+Crie um arquivo `.env` na raiz do projeto:
+
+```env
+ENDPOINT_1=https://golden-fish-68.webhook.cool
+ENDPOINT_2=https://webhook.site/6052667b-164c-45a7-b44d-3ad2b5059a72
+META_VERIFY_TOKEN=seu_token_secreto_aqui
+PORT=3000
+```
+
+Depois instale o `dotenv` e carregue no código, OU simplesmente exporte antes de rodar:
+
+```bash
+export ENDPOINT_1=https://golden-fish-68.webhook.cool
+export ENDPOINT_2=https://webhook.site/6052667b-164c-45a7-b44d-3ad2b5059a72
+export META_VERIFY_TOKEN=meu_token_123
+npm start
+```
+
+### **Em produção (Render/Heroku/Railway):**
+Configure no painel de variáveis de ambiente do seu serviço de hosting.
+
+---
+
+## ✅ Resumo Rápido:
+
+**Obrigatórias:**
+- `ENDPOINT_1` - Primeiro endpoint de destino
+- `ENDPOINT_2` - Segundo endpoint de destino
+- `META_VERIFY_TOKEN` - Token para verificação da Meta
+
+**Opcionais:**
+- `PORT` - Porta do servidor (padrão: 3000)
+- `HOST` - Host do servidor (padrão: 0.0.0.0)
+
+Quer que eu crie um arquivo `.env.example` atualizado com os seus endpoints atuais? 🚀
+
+---
+
