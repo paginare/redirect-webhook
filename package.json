@@ -1,0 +1,19 @@
+{
+  "name": "redirect-webhook",
+  "version": "1.0.0",
+  "description": "API leve para redirecionar webhooks para múltiplos endpoints com suporte a verificação Meta",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": ["webhook", "redirect", "fastify", "meta", "whatsapp"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fastify": "^4.25.2",
+    "undici": "^6.2.1"
+  }
+}
+
