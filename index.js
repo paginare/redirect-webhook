@@ -61,8 +61,9 @@ fastify.all('/*', async (request, reply) => {
       fastify.log.info({ mode, token, challenge }, 'Recebida requisição de verificação da Meta');
       
       if (token === META_VERIFY_TOKEN) {
-        fastify.log.info('Token verificado com sucesso');
+        fastify.log.info('Token verificado com sucesso - não redirecionando');
         // Retorna o challenge como texto plano (não JSON)
+        // NÃO redireciona para os endpoints
         return reply
           .code(200)
           .header('Content-Type', 'text/plain')
@@ -72,13 +73,18 @@ fastify.all('/*', async (request, reply) => {
         return reply.code(403).send('Token de verificação inválido');
       }
     }
+    
+    // Se for GET mas não for validação da Meta, retorna 200 sem redirecionar
+    fastify.log.info({ method, url: request.url }, 'Requisição GET recebida - não redirecionando');
+    return reply.code(200).send({ message: 'GET request recebido, mas não redirecionado' });
   }
   
+  // Apenas redireciona requisições POST (e outros métodos que não sejam GET)
   fastify.log.info({
     method,
     url: request.url,
     headers,
-  }, 'Webhook recebido');
+  }, 'Webhook recebido - redirecionando');
 
   // Serializa o body se necessário
   let bodyToSend = body;

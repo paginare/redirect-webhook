@@ -933,3 +933,101 @@ Quer que eu crie um arquivo `.env.example` atualizado com os seus endpoints atua
 
 ---
 
+_**User (2026-01-06 17:02Z)**_
+
+a validação da meta está com erro 
+
+---
+
+_**Agent (model claude-4.5-sonnet, mode Agent)**_
+
+Vou verificar o código da validação da Meta e corrigir o erro:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Users/antonioduarte/Lançar/redirect-webhook/index.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+Identifiquei o problema! A Meta retorna o `challenge` como string, mas precisa ser retornado como texto simples, não JSON. Vou corrigir:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Users/antonioduarte/Lançar/redirect-webhook/index.js</summary>
+
+**Chunk 1**
+Lines added: 8, lines removed: 4
+
+```diff
+@@ -58,12 +58,16 @@
+  
+      // Verifica se é uma requisição de verificação da Meta
+-     if (mode === 'subscribe' &amp;&amp; token) {
+-       fastify.log.info({ mode, token }, 'Recebida requisição de verificação da Meta');
++     if (mode &amp;&amp; mode === 'subscribe') {
++       fastify.log.info({ mode, token, challenge }, 'Recebida requisição de verificação da Meta');
+        
+        if (token === META_VERIFY_TOKEN) {
+          fastify.log.info('Token verificado com sucesso');
+-         return reply.code(200).send(challenge);
++         // Retorna o challenge como texto plano (não JSON)
++         return reply
++           .code(200)
++           .header('Content-Type', 'text/plain')
++           .send(challenge);
+        } else {
+-         fastify.log.warn('Token de verificação inválido');
++         fastify.log.warn({ receivedToken: token, expectedToken: META_VERIFY_TOKEN }, 'Token de verificação inválido');
+          return reply.code(403).send('Token de verificação inválido');
+        }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Pronto! Corrigi a validação da Meta. As mudanças foram:
+
+## 🔧 Correções aplicadas:
+
+1. **Content-Type correto**: Agora retorna `text/plain` em vez de JSON
+2. **Melhor validação**: Verifica se `mode` existe antes de comparar
+3. **Logs melhorados**: Agora mostra o token recebido vs esperado para debug
+4. **Challenge como string**: Retorna o challenge diretamente como texto
+
+## ✅ O que foi corrigido:
+
+```javascript
+// ANTES (errado - retornava JSON)
+return reply.code(200).send(challenge);
+
+// DEPOIS (correto - retorna texto plano)
+return reply
+  .code(200)
+  .header('Content-Type', 'text/plain')
+  .send(challenge);
+```
+
+## 🧪 Para testar:
+
+Se quiser testar localmente antes de configurar na Meta:
+
+```bash
+# Teste a verificação
+curl "http://localhost:3000/webhook?hub.mode=subscribe&hub.verify_token=seu_token_123&hub.challenge=test_challenge"
+
+# Deve retornar: test_challenge
+```
+
+Agora a validação da Meta deve funcionar corretamente! 🚀
+
+---
+
