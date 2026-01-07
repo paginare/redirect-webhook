@@ -38,10 +38,18 @@ async function redirectWebhook(url, method, headers, rawBody) {
       }
     }
     
+    // Prepara o body - se for Buffer vazio ou undefined, não envia
+    let bodyToSend = undefined;
+    if (rawBody && Buffer.isBuffer(rawBody) && rawBody.length > 0) {
+      bodyToSend = rawBody;
+    } else if (rawBody && !Buffer.isBuffer(rawBody)) {
+      bodyToSend = rawBody;
+    }
+    
     const response = await request(url, {
       method,
       headers: cleanHeaders,
-      body: rawBody || undefined,
+      body: bodyToSend,
     });
 
     return {
@@ -61,6 +69,16 @@ async function redirectWebhook(url, method, headers, rawBody) {
 }
 
 // Plugin para capturar o body raw antes de qualquer parsing
+// Captura como string para garantir compatibilidade com undici
+fastify.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+  done(null, body);
+});
+
+fastify.addContentTypeParser('text/plain', { parseAs: 'string' }, (req, body, done) => {
+  done(null, body);
+});
+
+// Para outros content types, captura como buffer
 fastify.addContentTypeParser('*', { parseAs: 'buffer' }, (req, body, done) => {
   done(null, body);
 });

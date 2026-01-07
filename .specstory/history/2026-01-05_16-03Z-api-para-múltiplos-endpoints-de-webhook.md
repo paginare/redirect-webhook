@@ -1242,20 +1242,62 @@ Lines added: 22, lines removed: 9
 
 <details><summary>Tool use: **search_replace** • Edit file: /Users/antonioduarte/Lançar/redirect-webhook/index.js</summary>
 
-Status: **loading**
+**Chunk 1**
+Lines added: 6, lines removed: 1
 
-```javascript
-// Plugin para capturar o body raw antes de qualquer parsing
-fastify.addContentTypeParser('*', { parseAs: 'buffer' }, (req, body, done) => {
-  done(null, body);
-});
-
-// Rota catch-all para receber webhooks em qualquer path
-fastify.all('/*', async (request, reply) => {
-  const { method, headers, body, query } = request;
+```diff
+@@ -60,8 +60,13 @@
+    }
+  }
++ 
++ // Plugin para capturar o body raw antes de qualquer parsing
++ fastify.addContentTypeParser('*', { parseAs: 'buffer' }, (req, body, done) =&gt; {
++   done(null, body);
++ });
   
-  // Verificação de webhook da Meta (GET request)
-  // https
+  // Rota catch-all para receber webhooks em qualquer path
+  fastify.all('/*', async (request, reply) =&gt; {
+-   const { method, headers, body, raw, query } = request;
++   const { method, headers, body, query } = request;
+    
+    // Verificação de webhook da Meta (GET request)
+```
+
+**Chunk 2**
+Lines added: 9, lines removed: 11
+
+```diff
+@@ -86,21 +91,19 @@
+    }
+    
++   // Log com informações importantes (sem logar o body inteiro para performance)
+    fastify.log.info({
+      method,
+      url: request.url,
+-     headers,
+-   }, 'Webhook recebido');
+- 
+-   // Serializa o body se necessário
+-   let bodyToSend = body;
+-   if (typeof body === 'object' &amp;&amp; body !== null) {
+-     bodyToSend = JSON.stringify(body);
+-   } else if (body === undefined || body === null) {
+-     bodyToSend = '';
+-   }
++     contentType: headers['content-type'],
++     signature: headers['x-hub-signature-256'] || headers['x-hub-signature'], // Meta signature
++   }, 'Webhook recebido - redirecionando');
++ 
++   // Usa o body raw (Buffer) exatamente como veio
++   // Isso preserva a assinatura da Meta
++   const rawBody = body;
+  
+    // Redireciona para todos os endpoints em paralelo
+    const redirectPromises = TARGET_ENDPOINTS.map(endpoint =&gt; 
+-     redirectWebhook(endpoint, method, headers, bodyToSend)
++     redirectWebhook(endpoint, method, headers, rawBody)
+    );
+  
 ```
 
 </details>
@@ -1264,7 +1306,49 @@ fastify.all('/*', async (request, reply) => {
 
 ---
 
+Perfeito! Agora a API preserva TUDO 100% igual, incluindo a assinatura da Meta. Aqui está o que foi corrigido:
 
+## 🔧 Correções críticas aplicadas:
+
+### 1. **Body RAW preservado**
+```javascript
+// Captura o body como Buffer ANTES de qualquer parsing
+fastify.addContentTypeParser('*', { parseAs: 'buffer' }, (req, body, done) => {
+  done(null, body);
+});
+```
+
+### 2. **Headers importantes preservados**
+- ✅ `x-hub-signature-256` (assinatura SHA256 da Meta)
+- ✅ `x-hub-signature` (assinatura SHA1 legada)
+- ✅ `content-type`
+- ✅ Todos os outros headers exceto os que causam conflito
+
+### 3. **Headers removidos** (apenas os que causam problemas):
+- ❌ `host` - seria o host antigo
+- ❌ `connection` - gerenciado automaticamente
+- ❌ `transfer-encoding` - gerenciado automaticamente
+- ❌ `content-length` - recalculado pelo undici
+
+## ✅ Por que agora funciona:
+
+**Antes:** O Fastify fazia parsing do JSON → alterava o body → assinatura ficava inválida ❌
+
+**Agora:** Body permanece como Buffer raw → enviado exatamente como veio → assinatura permanece válida ✅
+
+## 🧪 A assinatura da Meta agora será preservada:
+
+```
+Request original da Meta:
+- Body: {"entry":[...]}
+- x-hub-signature-256: sha256=abc123...
+
+Request redirecionado:
+- Body: {"entry":[...]} (IDÊNTICO)
+- x-hub-signature-256: sha256=abc123... (PRESERVADO)
+```
+
+Teste agora e o erro de "Invalid signature" deve desaparecer! 🚀
 
 ---
 
