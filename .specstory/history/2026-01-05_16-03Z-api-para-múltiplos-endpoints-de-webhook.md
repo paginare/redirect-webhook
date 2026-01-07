@@ -1031,3 +1031,240 @@ Agora a validação da Meta deve funcionar corretamente! 🚀
 
 ---
 
+_**User (2026-01-06 17:02Z)**_
+
+redirecione apenas as requests posts as de validação da meta nao precisa 
+
+---
+
+_**Agent (model claude-4.5-sonnet, mode Agent)**_
+
+Perfeito! Vou modificar para redirecionar apenas as requisições POST, não as de validação GET da Meta:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Users/antonioduarte/Lançar/redirect-webhook/index.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Users/antonioduarte/Lançar/redirect-webhook/index.js</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 1
+
+```diff
+@@ -62,6 +62,7 @@
+        
+        if (token === META_VERIFY_TOKEN) {
+-         fastify.log.info('Token verificado com sucesso');
++         fastify.log.info('Token verificado com sucesso - não redirecionando');
+          // Retorna o challenge como texto plano (não JSON)
++         // NÃO redireciona para os endpoints
+          return reply
+            .code(200)
+```
+
+**Chunk 2**
+Lines added: 6, lines removed: 1
+
+```diff
+@@ -73,11 +74,16 @@
+        }
+      }
++     
++     // Se for GET mas não for validação da Meta, retorna 200 sem redirecionar
++     fastify.log.info({ method, url: request.url }, 'Requisição GET recebida - não redirecionando');
++     return reply.code(200).send({ message: 'GET request recebido, mas não redirecionado' });
+    }
+    
++   // Apenas redireciona requisições POST (e outros métodos que não sejam GET)
+    fastify.log.info({
+      method,
+      url: request.url,
+      headers,
+-   }, 'Webhook recebido');
++   }, 'Webhook recebido - redirecionando');
+  
+    // Serializa o body se necessário
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Perfeito! Agora a API funciona assim:
+
+## ✅ Comportamento atualizado:
+
+### **Requisições GET:**
+- **Validação da Meta** → Responde com o `challenge`, **NÃO redireciona**
+- **Outros GETs** → Retorna 200, **NÃO redireciona**
+
+### **Requisições POST (e outros métodos):**
+- **Todos os POSTs** → **Redireciona** para os 2 endpoints
+
+## 📝 Resumo das mudanças:
+
+```javascript
+// GET de validação da Meta
+GET /webhook?hub.mode=subscribe&hub.verify_token=...
+→ Retorna challenge (200) ✅ NÃO redireciona
+
+// Outros GETs
+GET /webhook
+→ Retorna mensagem (200) ✅ NÃO redireciona
+
+// POSTs (webhooks reais da Meta)
+POST /webhook
+→ Redireciona para os 2 endpoints ✅ REDIRECIONA
+```
+
+Agora apenas os webhooks POST serão redirecionados, e as validações GET da Meta serão tratadas localmente sem redirecionamento! 🚀
+
+---
+
+_**User (2026-01-07 16:02Z)**_
+
+to recebendo 403.  ✅ Webhook enqueued successfully
+16:01:50 ❌ Webhook verification failed
+16:01:50 ❌ Webhook verification failed
+16:01:53 ❌ Invalid signature
+16:01:53 ❌ Invalid signature 
+
+quando eu aponto direto da meta pra outra api ele funciona, porém quando o webhook é redirecionado dá esse erro. por isso que eu preciso que seja 100% igual 
+
+---
+
+_**Agent (model claude-4.5-sonnet, mode Agent)**_
+
+Entendi! O problema é a validação de assinatura (signature) da Meta. Quando você redireciona, alguns headers críticos estão sendo perdidos ou modificados. Vou corrigir para preservar TODOS os headers, incluindo a assinatura:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: /Users/antonioduarte/Lançar/redirect-webhook/index.js</summary>
+
+</details>
+</tool-use>
+
+---
+
+O problema é que o Fastify está fazendo parsing do body e isso altera a assinatura. Preciso enviar o body RAW exatamente como veio. Vou reescrever para preservar tudo 100%:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Users/antonioduarte/Lançar/redirect-webhook/index.js</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -6,4 +6,6 @@
+    disableRequestLogging: false,
+    requestIdLogLabel: 'reqId',
++   // Importante: não fazer parsing automático do body para preservar o raw
++   bodyLimit: 10485760, // 10MB
+  });
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Users/antonioduarte/Lançar/redirect-webhook/index.js</summary>
+
+**Chunk 1**
+Lines added: 22, lines removed: 9
+
+```diff
+@@ -19,15 +19,28 @@
+  const META_VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || 'seu_token_de_verificacao_aqui';
+  
+- // Função para redirecionar o webhook
+- async function redirectWebhook(url, method, headers, body) {
+-   try {
++ // Função para redirecionar o webhook preservando tudo exatamente como veio
++ async function redirectWebhook(url, method, headers, rawBody) {
++   try {
++     // Lista de headers que não devem ser redirecionados
++     const headersToRemove = [
++       'host',
++       'connection',
++       'transfer-encoding',
++       'content-length', // Será recalculado pelo undici
++     ];
++     
++     // Copia todos os headers exceto os que causam problemas
++     const cleanHeaders = {};
++     for (const [key, value] of Object.entries(headers)) {
++       const lowerKey = key.toLowerCase();
++       if (!headersToRemove.includes(lowerKey)) {
++         cleanHeaders[key] = value;
++       }
++     }
++     
+      const response = await request(url, {
+        method,
+-       headers: {
+-         ...headers,
+-         host: undefined, // Remove o header host original
+-         'content-length': undefined, // Será recalculado automaticamente
+-       },
+-       body: body || undefined,
++       headers: cleanHeaders,
++       body: rawBody || undefined,
+      });
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: /Users/antonioduarte/Lançar/redirect-webhook/index.js</summary>
+
+Status: **loading**
+
+```javascript
+// Plugin para capturar o body raw antes de qualquer parsing
+fastify.addContentTypeParser('*', { parseAs: 'buffer' }, (req, body, done) => {
+  done(null, body);
+});
+
+// Rota catch-all para receber webhooks em qualquer path
+fastify.all('/*', async (request, reply) => {
+  const { method, headers, body, query } = request;
+  
+  // Verificação de webhook da Meta (GET request)
+  // https
+```
+
+</details>
+
+</tool-use>
+
+---
+
+
+
+---
+

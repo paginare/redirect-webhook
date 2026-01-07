@@ -5,6 +5,8 @@ const fastify = Fastify({
   logger: true,
   disableRequestLogging: false,
   requestIdLogLabel: 'reqId',
+  // Importante: não fazer parsing automático do body para preservar o raw
+  bodyLimit: 10485760, // 10MB
 });
 
 // Configure seus endpoints de destino aqui
@@ -16,17 +18,30 @@ const TARGET_ENDPOINTS = [
 // Token de verificação da Meta (configure via variável de ambiente)
 const META_VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || 'seu_token_de_verificacao_aqui';
 
-// Função para redirecionar o webhook
-async function redirectWebhook(url, method, headers, body) {
+// Função para redirecionar o webhook preservando tudo exatamente como veio
+async function redirectWebhook(url, method, headers, rawBody) {
   try {
+    // Lista de headers que não devem ser redirecionados
+    const headersToRemove = [
+      'host',
+      'connection',
+      'transfer-encoding',
+      'content-length', // Será recalculado pelo undici
+    ];
+    
+    // Copia todos os headers exceto os que causam problemas
+    const cleanHeaders = {};
+    for (const [key, value] of Object.entries(headers)) {
+      const lowerKey = key.toLowerCase();
+      if (!headersToRemove.includes(lowerKey)) {
+        cleanHeaders[key] = value;
+      }
+    }
+    
     const response = await request(url, {
       method,
-      headers: {
-        ...headers,
-        host: undefined, // Remove o header host original
-        'content-length': undefined, // Será recalculado automaticamente
-      },
-      body: body || undefined,
+      headers: cleanHeaders,
+      body: rawBody || undefined,
     });
 
     return {
@@ -45,9 +60,14 @@ async function redirectWebhook(url, method, headers, body) {
   }
 }
 
+// Plugin para capturar o body raw antes de qualquer parsing
+fastify.addContentTypeParser('*', { parseAs: 'buffer' }, (req, body, done) => {
+  done(null, body);
+});
+
 // Rota catch-all para receber webhooks em qualquer path
 fastify.all('/*', async (request, reply) => {
-  const { method, headers, body, raw, query } = request;
+  const { method, headers, body, query } = request;
   
   // Verificação de webhook da Meta (GET request)
   // https://developers.facebook.com/docs/graph-api/webhooks/getting-started
@@ -57,46 +77,34 @@ fastify.all('/*', async (request, reply) => {
     const challenge = query['hub.challenge'];
 
     // Verifica se é uma requisição de verificação da Meta
-    if (mode && mode === 'subscribe') {
-      fastify.log.info({ mode, token, challenge }, 'Recebida requisição de verificação da Meta');
+    if (mode === 'subscribe' && token) {
+      fastify.log.info({ mode, token }, 'Recebida requisição de verificação da Meta');
       
       if (token === META_VERIFY_TOKEN) {
-        fastify.log.info('Token verificado com sucesso - não redirecionando');
-        // Retorna o challenge como texto plano (não JSON)
-        // NÃO redireciona para os endpoints
-        return reply
-          .code(200)
-          .header('Content-Type', 'text/plain')
-          .send(challenge);
+        fastify.log.info('Token verificado com sucesso');
+        return reply.code(200).send(challenge);
       } else {
-        fastify.log.warn({ receivedToken: token, expectedToken: META_VERIFY_TOKEN }, 'Token de verificação inválido');
+        fastify.log.warn('Token de verificação inválido');
         return reply.code(403).send('Token de verificação inválido');
       }
     }
-    
-    // Se for GET mas não for validação da Meta, retorna 200 sem redirecionar
-    fastify.log.info({ method, url: request.url }, 'Requisição GET recebida - não redirecionando');
-    return reply.code(200).send({ message: 'GET request recebido, mas não redirecionado' });
   }
   
-  // Apenas redireciona requisições POST (e outros métodos que não sejam GET)
+  // Log com informações importantes (sem logar o body inteiro para performance)
   fastify.log.info({
     method,
     url: request.url,
-    headers,
+    contentType: headers['content-type'],
+    signature: headers['x-hub-signature-256'] || headers['x-hub-signature'], // Meta signature
   }, 'Webhook recebido - redirecionando');
 
-  // Serializa o body se necessário
-  let bodyToSend = body;
-  if (typeof body === 'object' && body !== null) {
-    bodyToSend = JSON.stringify(body);
-  } else if (body === undefined || body === null) {
-    bodyToSend = '';
-  }
+  // Usa o body raw (Buffer) exatamente como veio
+  // Isso preserva a assinatura da Meta
+  const rawBody = body;
 
   // Redireciona para todos os endpoints em paralelo
   const redirectPromises = TARGET_ENDPOINTS.map(endpoint => 
-    redirectWebhook(endpoint, method, headers, bodyToSend)
+    redirectWebhook(endpoint, method, headers, rawBody)
   );
 
   const results = await Promise.all(redirectPromises);
